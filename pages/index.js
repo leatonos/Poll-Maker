@@ -12,18 +12,27 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 // Initialize Firebase
 const db = getFirestore(firebase_app);
 
-export default function Home() {
-  const [test, setTest] = useState([]);
+function Option() {
+  return (
+    <div>
+      <h3>Option</h3>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    const unsub = onSnapshot(
-      doc(db, 'polls', 'Ci29zb52RrUXu2qruP08'),
-      (doc) => {
-        console.log('Current data: ', doc.data());
-        setTest(doc.data());
-      }
-    );
-  }, []);
+export default function Home() {
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState([]);
+
+  const addOption = () =>{
+    let currentOptions = [...options]
+    currentOptions.push({
+      text:'',
+      votes:0
+    })
+    setOptions(currentOptions)
+
+  }
 
   return (
     <div className={styles.container}>
@@ -31,7 +40,18 @@ export default function Home() {
         <title>Poll Creator</title>
       </Head>
       <h1>Pool Creator</h1>
-      <p>{JSON.stringify(test)}</p>
+      <form>
+        <label htmlFor="questionInput">Question</label>
+        <input onChange={(e) => setQuestion(e.target.value)}></input>
+        <button onClick={addOption}>Add Option</button>
+        <div>
+          {options.map(() => {
+            <Option />;
+          })}
+        </div>
+      </form>
+
+      <p>{question}</p>
     </div>
   );
 }
