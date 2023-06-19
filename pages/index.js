@@ -92,7 +92,6 @@ export default function Home() {
       const unsub = onSnapshot(doc(db, 'polls', pollId), (doc) => {
         setOptions(doc.data().options);
       });
-
       return () => {
         unsub();
       };
@@ -117,16 +116,9 @@ export default function Home() {
         <h2>Poll Results</h2>
         <div>
           {options.map((option, index) => {
-            const votePorcentage = () => {
-              if (totalVotes == 0) {
-                return 0;
-              } else {
-                return (parseInt(option.votes) / totalVotes()) * 100;
-              }
-            };
             return (
               <p>
-                {option.text} votes:{option.votes} {votePorcentage}%
+                {option.text} votes:{option.votes}
               </p>
             );
           })}
