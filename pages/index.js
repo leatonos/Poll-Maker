@@ -158,6 +158,7 @@ export default function Home() {
       setPollId(docRef.id);
       setPollStatus('PollResults');
     } else {
+      console.log('I am here');
       //id we already have an Id we save ut
       await setDoc(doc(db, 'polls', pollId), newDocument);
       setPollStatus('PollResults');
