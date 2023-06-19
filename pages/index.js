@@ -7,7 +7,15 @@ import { firebase_app } from './components/firebase_config.js';
 
 // Import the functions you need from the SDKs you need
 import { getFirestore } from 'firebase/firestore';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  getDoc,
+  onSnapshot,
+  collection,
+  serverTimestamp,
+  addDoc,
+} from 'firebase/firestore';
 
 // Initialize Firebase
 const db = getFirestore(firebase_app);
@@ -15,6 +23,7 @@ const db = getFirestore(firebase_app);
 export default function Home() {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState([]);
+  const [pollId, setPollId] = useState('');
   const [pollStatus, setPollStatus] = useState('PollCreator');
 
   //Option Component
@@ -48,12 +57,19 @@ export default function Home() {
 
   //Poll Creator Component
   function PollCreator() {
+    if (pollStatus != 'PollCreator') {
+      return;
+    }
+
     return (
       <div>
         <h1>Pool Creator</h1>
         <form onSubmit={createPoll}>
           <label htmlFor="questionInput">Question</label>
-          <input onChange={(e) => setQuestion(e.target.value)}></input>
+          <input
+            onBlur={(e) => setQuestion(e.target.value)}
+            defaultValue={question}
+          ></input>
           <button type="button" onClick={addOption}>
             Add Option
           </button>
@@ -68,6 +84,61 @@ export default function Home() {
     );
   }
 
+  function PollResults() {
+    if (pollStatus != 'PollResults') {
+      return;
+    }
+    useEffect(() => {
+      const unsub = onSnapshot(doc(db, 'polls', pollId), (doc) => {
+        setOptions(doc.data().options);
+      });
+
+      return () => {
+        unsub();
+      };
+    }, []);
+
+    const totalVotes = () => {
+      let totalVoteCount = 0;
+
+      for (let option of options) {
+        totalVoteCount += option.votes;
+      }
+
+      return totalVoteCount;
+    };
+
+    const askNewQuestion = () => {
+      setPollStatus('PollCreator');
+    };
+
+    return (
+      <div>
+        <h2>Poll Results</h2>
+        <div>
+          {options.map((option, index) => {
+            const votePorcentage = () => {
+              if (totalVotes == 0) {
+                return 0;
+              } else {
+                return (parseInt(option.votes) / totalVotes()) * 100;
+              }
+            };
+            return (
+              <p>
+                {option.text} votes:{option.votes} {votePorcentage}%
+              </p>
+            );
+          })}
+          <p>Total Votes: {totalVotes()}</p>
+        </div>
+        <button type="button" onClick={askNewQuestion}>
+          Ask a new question
+        </button>
+      </div>
+    );
+  }
+
   //Add option button function
   const addOption = () => {
     let currentOptions = [...options];
@@ -78,17 +149,27 @@ export default function Home() {
     setOptions(currentOptions);
   };
 
-  //Create Room
-  const createPoll = (e) => {
+  //Create/Update Room
+  const createPoll = async (e) => {
     e.preventDefault();
 
     const newDocument = {
-      createdTime: new Date(),
+      createdTime: serverTimestamp(),
       question: question,
       options: options,
     };
 
-    console.log(newDocument);
+    // If there is no poll id yet, adds a new poll with a generated id.
+    if (pollId == '') {
+      const docRef = await addDoc(collection(db, 'polls'), newDocument);
+      console.log('Document written with ID: ', docRef.id);
+      setPollId(docRef.id);
+      setPollStatus('PollResults');
+    } else {
+      //id we already have an Id we save ut
+      await setDoc(doc(db, 'polls', pollId), newDocument);
+      setPollStatus('PollResults');
+    }
   };
 
   return (
@@ -97,6 +178,7 @@ export default function Home() {
         <title>Poll Creator</title>
       </Head>
       <PollCreator />
+      <PollResults />
     </div>
   );
 }
